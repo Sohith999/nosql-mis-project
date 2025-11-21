@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoSQL MIS - Employee & Project Management</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        
+        /* Login Page */
+        .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; }
+        .login-box { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%; }
+        .login-box h1 { text-align: center; color: #333; margin-bottom: 10px; }
+        .login-box p { text-align: center; color: #666; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #333; font-weight: 500; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+        .form-group input:focus { outline: none; border-color: #667eea; }
+        .btn { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
+        .btn:hover { background: #5568d3; }
+        .error { background: #fee; border: 1px solid #fcc; color: #c33; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+        .demo-creds { background: #f0f0f0; padding: 15px; border-radius: 5px; margin-top: 20px; font-size: 13px; }
+        
+        /* Dashboard */
+        .dashboard { display: none; }
+        .dashboard.active { display: block; }
+        .header { background: white; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { color: #333; font-size: 24px; }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .logout-btn { padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        
+        .tabs { background: white; border-bottom: 1px solid #ddd; }
+        .tabs-container { max-width: 1200px; margin: 0 auto; display: flex; gap: 5px; }
+        .tab { padding: 15px 30px; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-size: 16px; color: #666; transition: all 0.3s; }
+        .tab.active { color: #667eea; border-bottom-color: #667eea; font-weight: 600; }
+        .tab:hover { background: #f8f8f8; }
+        
+        .content { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-header h2 { color: #333; }
+        .add-btn { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        .add-btn:hover { background: #218838; }
+        
+        .form-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .form-modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 10px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { margin-bottom: 20px; }
+        .modal-header h3 { color: #333; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-grid .full-width { grid-column: 1 / -1; }
+        .form-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .cancel-btn { padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        
+        .data-table { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #f8f9fa; }
+        th { padding: 15px; text-align: left; font-weight: 600; color: #333; border-bottom: 2px solid #dee2e6; }
+        td { padding: 15px; border-bottom: 1px solid #f0f0f0; }
+        tr:hover { background: #f8f9fa; }
+        .actions { display: flex; gap: 10px; }
+        .edit-btn, .delete-btn { padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .edit-btn { background: #007bff; color: white; }
+        .delete-btn { background: #dc3545; color: white; }
+        
+        .badge { padding: 4px 8px; border-radius: 3px; font-size: 12px; font-weight: 600; }
+        .badge.planning { background: #fff3cd; color: #856404; }
+        .badge.in-progress { background: #cfe2ff; color: #084298; }
+        .badge.completed { background: #d1e7dd; color: #0f5132; }
+        .badge.high { background: #f8d7da; color: #842029; }
+        .badge.medium { background: #fff3cd; color: #856404; }
+        .badge.low { background: #d1e7dd; color: #0f5132; }
+        
+        .loading { text-align: center; padding: 40px; color: #666; }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-box">
+            <h1>NoSQL MIS</h1>
+            <p>Employee & Project Management System</p>
+            <div id="loginError" class="error" style="display: none;"></div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Enter password">
+            </div>
+            <button class="btn" onclick="login()">Login</button>
+            <div class="demo-creds">
+                <strong>Demo Credentials:</strong><br>
+                Username: admin | Password: admin123
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboardPage" class="dashboard">
+        <div class="header">
+            <div class="header-content">
+                <div>
+                    <h1>NoSQL MIS Dashboard</h1>
+                    <p style="color: #666; font-size: 14px;">MongoDB + Redis Implementation</p>
+                </div>
+                <div class="user-info">
+                    <span>Welcome, <strong id="currentUser"></strong></span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tabs-container">
+                <button class="tab active" onclick="switchTab('employees')">Employees</button>
+                <button class="tab" onclick="switchTab('projects')">Projects</button>
+                <button class="tab" onclick="switchTab('tasks')">Tasks</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Employees Section -->
+            <div id="employeesSection" class="section active">
+                <div class="section-header">
+                    <h2>Employee Management</h2>
+                    <button class="add-btn" onclick="showAddEmployee()">+ Add Employee</button>
+                </div>
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Department</th>
+                                <th>Position</th>
+                                <th>Salary</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeesTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Projects Section -->
+            <div id="projectsSection" class="section">
+                <div class="section-header">
+                    <h2>Project Management</h2>
+                    <button class="add-btn" onclick="showAddProject()">+ Add Project</button>
+                </div>
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Client</th>
+                                <th>Budget</th>
+                                <th>Status</th>
+                                <th>Duration</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tasks Section -->
+            <div id="tasksSection" class="section">
+                <div class="section-header">
+                    <h2>Task Management</h2>
+                    <button class="add-btn" onclick="showAddTask()">+ Add Task</button>
+                </div>
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Project</th>
+                                <th>Assignee</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Due Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasksTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Form Modal -->
+    <div id="employeeModal" class="form-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="employeeModalTitle">Add Employee</h3>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="empName">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="empEmail">
+                </div>
+                <div class="form-group">
+                    <label>Department</label>
+                    <input type="text" id="empDepartment">
+                </div>
+                <div class="form-group">
+                    <label>Position</label>
+                    <input type="text" id="empPosition">
+                </div>
+                <div class="form-group">
+                    <label>Salary</label>
+                    <input type="number" id="empSalary">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn" onclick="saveEmployee()">Save</button>
+                <button class="cancel-btn" onclick="closeModal('employeeModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Form Modal -->
+    <div id="projectModal" class="form-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="projectModalTitle">Add Project</h3>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="projName">
+                </div>
+                <div class="form-group">
+                    <label>Client</label>
+                    <input type="text" id="projClient">
+                </div>
+                <div class="form-group">
+                    <label>Budget</label>
+                    <input type="number" id="projBudget">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="projStatus">
+                        <option value="Planning">Planning</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" id="projStartDate">
+                </div>
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" id="projEndDate">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn" onclick="saveProject()">Save</button>
+                <button class="cancel-btn" onclick="closeModal('projectModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Form Modal -->
+    <div id="taskModal" class="form-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="taskModalTitle">Add Task</h3>
+            </div>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>Title</label>
+                    <input type="text" id="taskTitle">
+                </div>
+                <div class="form-group">
+                    <label>Project</label>
+                    <select id="taskProject"></select>
+                </div>
+                <div class="form-group">
+                    <label>Assignee</label>
+                    <input type="text" id="taskAssignee">
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="taskPriority">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="taskStatus">
+                        <option value="Not Started">Not Started</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input type="date" id="taskDueDate">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn" onclick="saveTask()">Save</button>
+                <button class="cancel-btn" onclick="closeModal('taskModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let sessionId = null;
+        let currentEditId = null;
+        let employees = [];
+        let projects = [];
+        let tasks = [];
+
+        // Authentication
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    sessionId = data.session_id;
+                    document.getElementById('currentUser').textContent = data.username;
+                    document.getElementById('loginPage').classList.remove('active');
+                    document.getElementById('dashboardPage').classList.add('active');
+                    loadAllData();
+                } else {
+                    showError(data.message);
+                }
+            })
+            .catch(err => showError('Connection failed. Is the server running?'));
+        }
+
+        function logout() {
+            fetch(`${API_URL}/logout`, {
+                method: 'POST',
+                headers: { 'Session-ID': sessionId }
+            }).finally(() => {
+                sessionId = null;
+                document.getElementById('loginPage').classList.add('active');
+                document.getElementById('dashboardPage').classList.remove('active');
+            });
+        }
+
+        function showError(msg) {
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+        }
+
+        // Tab Navigation
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`${tab}Section`).classList.add('active');
+        }
+
+        // Load Data
+        function loadAllData() {
+            loadEmployees();
+            loadProjects();
+            loadTasks();
+        }
+
+        function loadEmployees() {
+            fetch(`${API_URL}/employees`, {
+                headers: { 'Session-ID': sessionId }
+            })
+            .then(res => res.json())
+            .then(data => {
+                employees = data.data;
+                renderEmployees();
+            });
+        }
+
+        function renderEmployees() {
+            const tbody = document.getElementById('employeesTable');
+            tbody.innerHTML = employees.map(emp => `
+                <tr>
+                    <td>${emp.name}</td>
+                    <td>${emp.email}</td>
+                    <td>${emp.department}</td>
+                    <td>${emp.position}</td>
+                    <td>$${emp.salary}</td>
+                    <td class="actions">
+                        <button class="edit-btn" onclick="editEmployee('${emp._id}')">Edit</button>
+                        <button class="delete-btn" onclick="deleteEmployee('${emp._id}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function loadProjects() {
+            fetch(`${API_URL}/projects`, {
+                headers: { 'Session-ID': sessionId }
+            })
+            .then(res => res.json())
+            .then(data => {
+                projects = data.data;
+                renderProjects();
+            });
+        }
+
+        function renderProjects() {
+            const tbody = document.getElementById('projectsTable');
+            tbody.innerHTML = projects.map(proj => `
+                <tr>
+                    <td>${proj.name}</td>
+                    <td>${proj.client}</td>
+                    <td>$${proj.budget}</td>
+                    <td><span class="badge ${proj.status.toLowerCase().replace(' ', '-')}">${proj.status}</span></td>
+                    <td>${proj.startDate} to ${proj.endDate}</td>
+                    <td class="actions">
+                        <button class="edit-btn" onclick="editProject('${proj._id}')">Edit</button>
+                        <button class="delete-btn" onclick="deleteProject('${proj._id}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function loadTasks() {
+            fetch(`${API_URL}/tasks`, {
+                headers: { 'Session-ID': sessionId }
+            })
+            .then(res => res.json())
+            .then(data => {
+                tasks = data.data;
+                renderTasks();
+            });
+        }
+
+        function renderTasks() {
+            const tbody = document.getElementById('tasksTable');
+            tbody.innerHTML = tasks.map(task => {
+                const project = projects.find(p => p._id === task.projectId);
+                return `
+                    <tr>
+                        <td>${task.title}</td>
+                        <td>${project ? project.name : 'N/A'}</td>
+                        <td>${task.assignee}</td>
+                        <td><span class="badge ${task.priority.toLowerCase()}">${task.priority}</span></td>
+                        <td><span class="badge ${task.status.toLowerCase().replace(' ', '-')}">${task.status}</span></td>
+                        <td>${task.dueDate}</td>
+                        <td class="actions">
+                            <button class="edit-btn" onclick="editTask('${task._id}')">Edit</button>
+                            <button class="delete-btn" onclick="deleteTask('${task._id}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Employee CRUD
+        function showAddEmployee() {
+            currentEditId = null;
+            document.getElementById('employeeModalTitle').textContent = 'Add Employee';
+            document.getElementById('empName').value = '';
+            document.getElementById('empEmail').value = '';
+            document.getElementById('empDepartment').value = '';
+            document.getElementById('empPosition').value = '';
+            document.getElementById('empSalary').value = '';
+            document.getElementById('employeeModal').classList.add('active');
+        }
+
+        function editEmployee(id) {
+            const emp = employees.find(e => e._id === id);
+            currentEditId = id;
+            document.getElementById('employeeModalTitle').textContent = 'Edit Employee';
+            document.getElementById('empName').value = emp.name;
+            document.getElementById('empEmail').value = emp.email;
+            document.getElementById('empDepartment').value = emp.department;
+            document.getElementById('empPosition').value = emp.position;
+            document.getElementById('empSalary').value = emp.salary;
+            document.getElementById('employeeModal').classList.add('active');
+        }
+
+        function saveEmployee() {
+            const data = {
+                name: document.getElementById('empName').value,
+                email: document.getElementById('empEmail').value,
+                department: document.getElementById('empDepartment').value,
+                position: document.getElementById('empPosition').value,
+                salary: parseInt(document.getElementById('empSalary').value)
+            };
+
+            const url = currentEditId ? `${API_URL}/employees/${currentEditId}` : `${API_URL}/employees`;
+            const method = currentEditId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Session-ID': sessionId },
+                body: JSON.stringify(data)
+            })
+            .then(() => {
+                closeModal('employeeModal');
+                loadEmployees();
+            });
+        }
+
+        function deleteEmployee(id) {
+            if (confirm('Delete this employee?')) {
+                fetch(`${API_URL}/employees/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Session-ID': sessionId }
+                })
+                .then(() => loadEmployees());
+            }
+        }
+
+        // Project CRUD
+        function showAddProject() {
+            currentEditId = null;
+            document.getElementById('projectModalTitle').textContent = 'Add Project';
+            document.getElementById('projName').value = '';
+            document.getElementById('projClient').value = '';
+            document.getElementById('projBudget').value = '';
+            document.getElementById('projStatus').value = 'Planning';
+            document.getElementById('projStartDate').value = '';
+            document.getElementById('projEndDate').value = '';
+            document.getElementById('projectModal').classList.add('active');
+        }
+
+        function editProject(id) {
+            const proj = projects.find(p => p._id === id);
+            currentEditId = id;
+            document.getElementById('projectModalTitle').textContent = 'Edit Project';
+            document.getElementById('projName').value = proj.name;
+            document.getElementById('projClient').value = proj.client;
+            document.getElementById('projBudget').value = proj.budget;
+            document.getElementById('projStatus').value = proj.status;
+            document.getElementById('projStartDate').value = proj.startDate;
+            document.getElementById('projEndDate').value = proj.endDate;
+            document.getElementById('projectModal').classList.add('active');
+        }
+
+        function saveProject() {
+            const data = {
+                name: document.getElementById('projName').value,
+                client: document.getElementById('projClient').value,
+                budget: parseInt(document.getElementById('projBudget').value),
+                status: document.getElementById('projStatus').value,
+                startDate: document.getElementById('projStartDate').value,
+                endDate: document.getElementById('projEndDate').value
+            };
+
+            const url = currentEditId ? `${API_URL}/projects/${currentEditId}` : `${API_URL}/projects`;
+            const method = currentEditId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Session-ID': sessionId },
+                body: JSON.stringify(data)
+            })
+            .then(() => {
+                closeModal('projectModal');
+                loadProjects();
+            });
+        }
+
+        function deleteProject(id) {
+            if (confirm('Delete this project?')) {
+                fetch(`${API_URL}/projects/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Session-ID': sessionId }
+                })
+                .then(() => loadProjects());
+            }
+        }
+
+        // Task CRUD
+        function showAddTask() {
+            currentEditId = null;
+            document.getElementById('taskModalTitle').textContent = 'Add Task';
+            const projectSelect = document.getElementById('taskProject');
+            projectSelect.innerHTML = '<option value="">Select Project</option>' + 
+                projects.map(p => `<option value="${p._id}">${p.name}</option>`).join('');
+            document.getElementById('taskTitle').value = '';
+            document.getElementById('taskAssignee').value = '';
+            document.getElementById('taskPriority').value = 'Medium';
+            document.getElementById('taskStatus').value = 'Not Started';
+            document.getElementById('taskDueDate').value = '';
+            document.getElementById('taskModal').classList.add('active');
+        }
+
+        function editTask(id) {
+            const task = tasks.find(t => t._id === id);
+            currentEditId = id;
+            document.getElementById('taskModalTitle').textContent = 'Edit Task';
+            const projectSelect = document.getElementById('taskProject');
+            projectSelect.innerHTML = '<option value="">Select Project</option>' + 
+                projects.map(p => `<option value="${p._id}">${p.name}</option>`).join('');
+            document.getElementById('taskTitle').value = task.title;
+            document.getElementById('taskProject').value = task.projectId;
+            document.getElementById('taskAssignee').value = task.assignee;
+            document.getElementById('taskPriority').value = task.priority;
+            document.getElementById('taskStatus').value = task.status;
+            document.getElementById('taskDueDate').value = task.dueDate;
+            document.getElementById('taskModal').classList.add('active');
+        }
+
+        function saveTask() {
+            const data = {
+                title: document.getElementById('taskTitle').value,
+                projectId: document.getElementById('taskProject').value,
+                assignee: document.getElementById('taskAssignee').value,
+                priority: document.getElementById('taskPriority').value,
+                status: document.getElementById('taskStatus').value,
+                dueDate: document.getElementById('taskDueDate').value
+            };
+
+            const url = currentEditId ? `${API_URL}/tasks/${currentEditId}` : `${API_URL}/tasks`;
+            const method = currentEditId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Session-ID': sessionId },
+                body: JSON.stringify(data)
+            })
+            .then(() => {
+                closeModal('taskModal');
+                loadTasks();
+            });
+        }
+
+        function deleteTask(id) {
+            if (confirm('Delete this task?')) {
+                fetch(`${API_URL}/tasks/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Session-ID': sessionId }
+                })
+                .then(() => loadTasks());
+            }
+        }
+
+        // Modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Enter key for login
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+    </script>
+</body>
+</html>
